@@ -48,7 +48,7 @@ async def generate_sub_queries(
         query,
         parent_query,
         report_type,
-        max_iterations=cfg.max_iterations or 1,
+        max_iterations=cfg.max_iterations or 3,
         context=context
     )
 
@@ -60,19 +60,35 @@ async def generate_sub_queries(
             llm_provider=cfg.strategic_llm_provider,
             max_tokens=None,
             llm_kwargs=cfg.llm_kwargs,
+            reasoning_effort="high",
             cost_callback=cost_callback,
         )
     except Exception as e:
-        logger.warning(f"Error with strategic LLM: {e}. Falling back to smart LLM.")
-        response = await create_chat_completion(
-            model=cfg.smart_llm_model,
-            messages=[{"role": "user", "content": gen_queries_prompt}],
-            temperature=cfg.temperature,
-            max_tokens=cfg.smart_token_limit,
-            llm_provider=cfg.smart_llm_provider,
-            llm_kwargs=cfg.llm_kwargs,
-            cost_callback=cost_callback,
-        )
+        logger.warning(f"Error with strategic LLM: {e}. Retrying with max_tokens={cfg.strategic_token_limit}.")
+        logger.warning(f"See https://github.com/assafelovic/gpt-researcher/issues/1022")
+        try:
+            response = await create_chat_completion(
+                model=cfg.strategic_llm_model,
+                messages=[{"role": "user", "content": gen_queries_prompt}],
+                temperature=1,
+                llm_provider=cfg.strategic_llm_provider,
+                max_tokens=cfg.strategic_token_limit,
+                llm_kwargs=cfg.llm_kwargs,
+                cost_callback=cost_callback,
+            )
+            logger.warning(f"Retrying with max_tokens={cfg.strategic_token_limit} successful.")
+        except Exception as e:
+            logger.warning(f"Retrying with max_tokens={cfg.strategic_token_limit} failed.")
+            logger.warning(f"Error with strategic LLM: {e}. Falling back to smart LLM.")
+            response = await create_chat_completion(
+                model=cfg.smart_llm_model,
+                messages=[{"role": "user", "content": gen_queries_prompt}],
+                temperature=cfg.temperature,
+                max_tokens=cfg.smart_token_limit,
+                llm_provider=cfg.smart_llm_provider,
+                llm_kwargs=cfg.llm_kwargs,
+                cost_callback=cost_callback,
+            )
 
     return json_repair.loads(response)
 
