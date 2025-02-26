@@ -93,14 +93,14 @@ const GPTResearcher = (() => {
     output.innerHTML += '<div class="agent_response">' + data.output + '</div>'
     output.scrollTop = output.scrollHeight
     output.style.display = 'block'
-    updateScroll()
+    // updateScroll()
   }
 
   const writeReport = (data, converter) => {
     const reportContainer = document.getElementById('reportContainer')
     const markdownOutput = converter.makeHtml(data.output)
     reportContainer.innerHTML += markdownOutput
-    updateScroll()
+    // updateScroll()
   }
 
   const updateDownloadLink = (data) => {
